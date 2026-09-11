@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   CalendarDays,
@@ -541,7 +541,7 @@ function SquadSection() {
                 {p.goals} هدف
               </Badge>
             )}
-          </a>
+          </Link>
         ))}
       </div>
       <SourceNote source={data.source} />
