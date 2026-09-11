@@ -508,7 +508,7 @@ function SquadSection() {
                 <span className="text-xs text-muted-foreground tabular-nums">
                   {p.goals} هدف · {p.appearances ?? "—"} مباراة
                 </span>
-              </div>
+              </Link>
             ))}
           </CardContent>
         </Card>
