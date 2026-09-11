@@ -487,7 +487,12 @@ function SquadSection() {
           </CardHeader>
           <CardContent className="space-y-2">
             {topScorers.map((p, i) => (
-              <div key={p.id} className="flex items-center justify-between text-sm">
+              <Link
+                key={p.id}
+                to="/players/$playerId"
+                params={{ playerId: String(p.id) }}
+                className="flex items-center justify-between rounded-lg text-sm transition-colors hover:bg-accent/60"
+              >
                 <span className="flex items-center gap-2">
                   <span className="w-5 text-center font-black text-gold tabular-nums">{i + 1}</span>
                   {p.photoUrl && (
