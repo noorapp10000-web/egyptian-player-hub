@@ -24,6 +24,7 @@ import {
   getNews,
   getMatchDetail,
 } from "@/lib/hub.functions";
+import { LineupPitch } from "@/components/lineup-pitch";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
