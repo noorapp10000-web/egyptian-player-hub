@@ -24,6 +24,7 @@ import {
   getNews,
   getMatchDetail,
 } from "@/lib/hub.functions";
+import { LineupPitch } from "@/components/lineup-pitch";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -317,45 +318,26 @@ function MatchDetailDialog({
                   )}
                 </h4>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {(
-                    [
-                      [detail.homeTeam.name, detail.lineups.home, detail.lineups.homeBench],
-                      [detail.awayTeam.name, detail.lineups.away, detail.lineups.awayBench],
-                    ] as const
-                  ).map(([teamName, starters, bench]) => (
-                    <div key={teamName} className="rounded-lg border bg-card p-3">
-                      <p className="mb-2 text-xs font-bold text-primary">{teamName}</p>
-                      <ul className="space-y-1 text-sm">
-                        {starters.map((p) => (
-                          <li key={p.id} className="flex items-center gap-2">
-                            <span className="w-6 text-center text-xs tabular-nums text-muted-foreground">
-                              {p.number ?? "—"}
-                            </span>
-                            <span>{p.name}</span>
-                            {p.isCaptain && <Star className="size-3 text-gold" />}
-                          </li>
-                        ))}
-                      </ul>
-                      {bench.length > 0 && (
-                        <>
-                          <p className="mt-3 mb-1 text-[11px] font-semibold text-muted-foreground">
-                            البدلاء
-                          </p>
-                          <ul className="space-y-1 text-xs text-muted-foreground">
-                            {bench.map((p) => (
-                              <li key={p.id} className="flex items-center gap-2">
-                                <span className="w-6 text-center tabular-nums">{p.number ?? "—"}</span>
-                                <span>{p.name}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </>
-                      )}
-                    </div>
-                  ))}
+                  <LineupPitch
+                    teamName={detail.homeTeam.name}
+                    crestUrl={detail.homeTeam.crestUrl}
+                    formation={detail.homeFormation}
+                    coach={detail.homeCoach}
+                    players={detail.lineups.home}
+                    bench={detail.lineups.homeBench}
+                  />
+                  <LineupPitch
+                    teamName={detail.awayTeam.name}
+                    crestUrl={detail.awayTeam.crestUrl}
+                    formation={detail.awayFormation}
+                    coach={detail.awayCoach}
+                    players={detail.lineups.away}
+                    bench={detail.lineups.awayBench}
+                  />
                 </div>
               </div>
             )}
+
 
             <SourceNote source={data?.source} />
           </div>
