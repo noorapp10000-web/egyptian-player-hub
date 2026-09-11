@@ -511,11 +511,10 @@ function SquadSection() {
 
       <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
         {data.players.map((p) => (
-          <a
+          <Link
             key={p.id}
-            href={p.url}
-            target="_blank"
-            rel="noreferrer"
+            to="/players/$playerId"
+            params={{ playerId: String(p.id) }}
             className="group rounded-xl border bg-card card-sheen p-3 text-center transition-colors hover:bg-accent/60"
           >
             {p.photoUrl ? (
