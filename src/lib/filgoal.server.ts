@@ -700,3 +700,146 @@ export async function loadMatchDetail(matchId: number) {
 }
 
 export { nowIso };
+
+/* ------------------------------ تفاصيل اللاعب ----------------------------- */
+
+export type PlayerCompetitionStat = {
+  competitionId: number | null;
+  competition: string;
+  teamName: string;
+  minutes: number | null;
+  appearances: number | null;
+  goals: number | null;
+  yellowCards: number | null;
+  redCards: number | null;
+};
+
+export type PlayerCareerStop = {
+  fromTeam: string | null;
+  toTeam: string | null;
+  toTeamCrestUrl: string | null;
+  position: string | null;
+  number: string | null;
+  from: string | null;
+  until: string | null;
+  duration: string | null;
+  contract: string | null;
+};
+
+export type PlayerDetail = {
+  id: number;
+  name: string;
+  role: string | null;
+  photoUrl: string | null;
+  club: string | null;
+  clubCrestUrl: string | null;
+  nationality: string | null;
+  birthDate: string | null;
+  birthPlace: string | null;
+  shirtNumber: string | null;
+  position: string | null;
+  availability: string | null;
+  totals: { label: string; value: number | null }[];
+  competitions: PlayerCompetitionStat[];
+  career: PlayerCareerStop[];
+  url: string;
+};
+
+const infoValue = (items: { label: string; value: string }[], key: string) =>
+  items.find((i) => i.label.includes(key))?.value ?? null;
+
+export function parsePlayerDetail(html: string, playerId: number): PlayerDetail | null {
+  const head = html.match(/<div id="dhd">([\s\S]*?)<div class="bd">/i)?.[1] ?? html;
+  const name = decode(head.match(/<h1>([\s\S]*?)<\/h1>/i)?.[1] ?? "");
+  if (!name) return null;
+
+  const photo = head.match(/data-src="([^"]*Photos\/Person\/[^"]+)"/i)?.[1];
+  const clubCrest = head.match(/data-src="([^"]*Photos\/Team\/[^"]+)"/i)?.[1];
+  const role = decode(head.match(/data-player-position="([^"]*)"/i)?.[1] ?? "") || null;
+
+  const infoBlock = head.match(/<div class="s">\s*<ul>([\s\S]*?)<\/ul>/i)?.[1] ?? "";
+  const items = [...infoBlock.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi)]
+    .map((m) => {
+      const raw = m[1]!;
+      const label = decode(raw.match(/<b>([\s\S]*?)<\/b>/i)?.[1] ?? "").replace(/[:：]\s*$/, "");
+      const value = decode(raw.replace(/<b>[\s\S]*?<\/b>/i, ""));
+      return { label, value };
+    })
+    .filter((i) => i.label && i.value);
+
+  const totals = [...head.matchAll(/<li class="mip_stats"[\s\S]*?<b>([\s\S]*?)<\/b>\s*<span>([\s\S]*?)<\/span>/gi)]
+    .map((m) => ({ label: decode(m[2]!), value: num(decode(m[1]!)) }))
+    .filter((t) => t.label);
+
+  const competitions = [
+    ...html.matchAll(/<div class="fg_rw s" data-champid="(\d+)">([\s\S]*?)<\/div>\s*<\/div>/gi),
+  ].map((m) => {
+    const row = m[2]!;
+    const cells = [...row.matchAll(/<div class="fg_cl t3"[^>]*>([\s\S]*?)<\/div>/gi)].map((c) =>
+      num(decode(c[1]!)),
+    );
+    return {
+      competitionId: num(m[1]!),
+      competition: decode(row.match(/<div class="fg_cl t1">([\s\S]*?)<\/div>/i)?.[1] ?? ""),
+      teamName: decode(row.match(/<div class="fg_cl t2">([\s\S]*?)<\/div>/i)?.[1] ?? ""),
+      minutes: cells[0] ?? null,
+      appearances: cells[1] ?? null,
+      goals: cells[2] ?? null,
+      yellowCards: cells[3] ?? null,
+      redCards: cells[4] ?? null,
+    } satisfies PlayerCompetitionStat;
+  });
+
+  const careerBlock = html.match(/<div id="career-viewer">([\s\S]*?)<\/ul>/i)?.[1] ?? "";
+  const career = [...careerBlock.matchAll(/<li>([\s\S]*?)<\/li>/gi)].map((m) => {
+    const block = m[1]!;
+    const teams = [...block.matchAll(/<b>([\s\S]*?)<\/b>/gi)].map((t) => decode(t[1]!));
+    const crest = block.match(/<img src="([^"]*Photos\/Team\/[^"]+)"/i)?.[1];
+    const fields = [...block.matchAll(/<span>\s*<label>([\s\S]*?)<\/label>([\s\S]*?)<\/span>/gi)].map(
+      (f) => ({ label: decode(f[1]!), value: decode(f[2]!) }),
+    );
+    const field = (key: string) => fields.find((f) => f.label.includes(key))?.value ?? null;
+    return {
+      fromTeam: teams[1] ?? null,
+      toTeam: teams[0] ?? null,
+      toTeamCrestUrl: absolute(crest),
+      position: field("مركز"),
+      number: field("رقم"),
+      from: field("من"),
+      until: field("حتى"),
+      duration: field("مده"),
+      contract: field("عقد"),
+    } satisfies PlayerCareerStop;
+  });
+
+  return {
+    id: playerId,
+    name,
+    role,
+    photoUrl: absolute(photo),
+    club: infoValue(items, "النادي"),
+    clubCrestUrl: absolute(clubCrest),
+    nationality: infoValue(items, "الجنسية"),
+    birthDate: infoValue(items, "تاريخ الميلاد"),
+    birthPlace: infoValue(items, "مكان الميلاد"),
+    shirtNumber: infoValue(items, "رقم القميص"),
+    position: infoValue(items, "المركز"),
+    availability: infoValue(items, "الحالة"),
+    totals,
+    competitions,
+    career,
+    url: `${FG}/players/${playerId}/x`,
+  } satisfies PlayerDetail;
+}
+
+export async function loadPlayerDetail(playerId: number) {
+  const entry = await cached(`player-${playerId}`, 10 * 60_000, async () => {
+    const detail = parsePlayerDetail(await fetchHtml(`${FG}/players/${playerId}/x`), playerId);
+    if (!detail) throw new Error("بيانات اللاعب غير متاحة");
+    return detail;
+  });
+  return {
+    player: entry.value,
+    source: sourceOf("FilGoal", entry.value.url, entry.live, entry.at),
+  };
+}
